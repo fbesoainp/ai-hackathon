@@ -1,0 +1,29 @@
+services:
+  app:
+    build:
+      context: ./
+      dockerfile: ./docker/Dockerfile
+    ports:
+      - "80:8000"
+    depends_on:
+      - mongo
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017
+      - DATABASE_NAME=Pairfecto
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/key.json
+      - PROJECT_ID=${PROJECT_ID}
+      - LOCATION=${LOCATION}
+      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
+      - MODEL=${MODEL}
+
+    volumes:
+      - ./google_sa.json:/app/key.json
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:

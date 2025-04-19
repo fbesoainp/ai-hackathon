@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "pairfecto-backend"
+version = "0.1.0"
+description = ""
+authors = ["fbesoainp <chachibesoain1@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.115.7"
+uvicorn = "^0.34.0"
+pydantic = "^2.10.6"
+beanie = "^1.29.0"
+motor = "^3.6.1"
+python-dotenv = "^1.0.1"
+google-auth = "^2.38.0"
+google-cloud-aiplatform = "^1.78.0"
+googlemaps = "^4.10.0"
+firebase-admin = "^6.6.0"
+
+[tool.poetry.group.dev.dependencies]
+pylint = "^3.0.2"
+flake8 = "^6.1.0"
+mypy = "^1.7.0"
+black = "^23.11.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

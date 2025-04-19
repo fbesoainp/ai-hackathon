@@ -1,0 +1,5 @@
+.venv
+.env
+google_sa.json
+__pycache__
+.mypy_cache
