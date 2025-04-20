@@ -6,6 +6,7 @@ python-dotenv
 pydantic
 dnspython
 modal
+sentence-transformers
 
 # Google / Firebase auth
 google-auth
