@@ -4,9 +4,11 @@ from pathlib import Path
 
 import lancedb
 import pyarrow as pa
+from sentence_transformers import SentenceTransformer
 
 # embedding dimension must match model
 EMBED_DIM = 384
+_model = SentenceTransformer("all-MiniLM-L6-v2")
 # lanceDB storage directory
 LANCEDB_DIR = os.getenv("LANCEDB_DIR", "./data/lancedb")
 # optional NDJSON path to seed new table
@@ -45,15 +47,20 @@ arrow_schema = pa.schema([
 def make_embedding(record: dict) -> list[float]:
     """Compute a 384-d embedding over key text fields and location."""
     parts = [
-        record.get("name", ""),
-        record.get("area", ""),
-        record.get("address", ""),
-        record.get("description", ""),
-        f"{record.get('location', {}).get('lat', 0.0)} {record.get('location', {}).get('lng', 0.0)}",
-    ] + [r.get("text", "") for r in record.get("reviews", [])]
+        record.get("name") or "",
+        record.get("address") or "",
+        record.get("description") or "",
+        record.get("area") or "",
+        f"{record.get('location', {}).get('lat', 0.0)} "
+        f"{record.get('location', {}).get('lng', 0.0)}",
+    ] + [
+        r.get("text", "") or ""  # also guard review texts
+        for r in record.get("reviews", [])
+    ]
     text = " ".join(parts)
     vec = _model.encode(text)
-    return vec.astype("float32").tolist()
+    c = vec.astype("float32").tolist()
+    return c
 
 
 def make_row(data: dict) -> dict:
@@ -91,7 +98,11 @@ def seed_table(table, ndjson_path: Path) -> None:
     with ndjson_path.open("r", encoding="utf-8") as f:
         for i, line in enumerate(f, start=1):
             rec = json.loads(line)
-            batch.append(make_row(rec))
+            try:
+                batch.append(make_row(rec))
+            except Exception as e:
+                print(f"[ERROR] Error processing line {i}: {e}")
+                continue
             if i % 100 == 0:
                 table.add(batch)
                 print(f"  - inserted batch up to line {i}")
@@ -100,7 +111,7 @@ def seed_table(table, ndjson_path: Path) -> None:
         table.add(batch)
         print(f"  - inserted final batch of {len(batch)} rows")
     # build vector index
-    table.create_index("vector", method="IVF_FLAT", metric="cosine")
+    table.create_index(metric="cosine")
     total = table.count_rows()
     print(f"[INFO] Seeding complete. Total rows: {total}")
 
@@ -113,14 +124,15 @@ def get_table():
     db = lancedb.connect(LANCEDB_DIR)
     try:
         tbl = db.open_table("restaurants")
+        raise FileNotFoundError
         if tbl.schema != arrow_schema:
             print("[WARN] Schema mismatch – recreating table")
-            db.drop_table("restaurants")
             raise FileNotFoundError
     except (FileNotFoundError, ValueError):
+        db.drop_table("restaurants")
         tbl = db.create_table("restaurants", schema=arrow_schema)
         print("[INFO] Created 'restaurants' table")
-        ndjson_path = os.getenv(NDJSON_PATH_ENV)
+        ndjson_path = "restaurants.ndjson"
         if ndjson_path:
             path = Path(ndjson_path)
             if path.is_file():
