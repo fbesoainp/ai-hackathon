@@ -128,7 +128,9 @@ async def query(q: QueryRequest, request: Request):
         .select([
             "area","name","address","location",
             "rating","review_amount",
-            "description","photos","reviews"
+            "description",
+            #"photos",
+            #"reviews"
         ])
         .to_pandas()
         .to_dict("records")

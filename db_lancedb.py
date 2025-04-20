@@ -122,12 +122,8 @@ def get_table():
     db = lancedb.connect(LANCEDB_DIR)
     try:
         tbl = db.open_table("restaurants")
-        raise FileNotFoundError
-        if tbl.schema != arrow_schema:
-            print("[WARN] Schema mismatch – recreating table")
-            raise FileNotFoundError
     except (FileNotFoundError, ValueError):
-        db.drop_table("restaurants")
+        #db.drop_table("restaurants")
         tbl = db.create_table("restaurants", schema=arrow_schema)
         print("[INFO] Created 'restaurants' table")
         ndjson_path = "restaurants.ndjson"

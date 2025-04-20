@@ -4,6 +4,8 @@ services:
   api:
     build: .
     container_name: pairfecto-api
+    volumes:
+      - ./data/lancedb:/app/data/lancedb
     env_file:
       - .env  # reuse your local env; values can be overridden below
     environment:
