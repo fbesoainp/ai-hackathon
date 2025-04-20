@@ -1,0 +1,25 @@
+fastapi
+uvicorn[standard]
+motor
+httpx
+python-dotenv
+pydantic
+dnspython
+
+# Google / Firebase auth
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+
+# Google Gemini client (JSON mode)
+google-generativeai
+
+# Embedded vector DB (LanceDB) + Arrow backing store
+lancedb
+pyarrow
+
+numpy
+
+# Ingestion utilities
+ijson
+tqdm
