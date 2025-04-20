@@ -12,6 +12,24 @@ import json, os, re
 from typing import List, Dict
 import numpy as np
 
+
+
+def _pick_first_generatable_model() -> str | None:
+    """
+    Return model name that supports generateContent on the *current* client.
+    Falls back to 'text-bison-001' if nothing obvious is found.
+    """
+    try:
+        models = genai.list_models()                    # v1beta or v1
+        print("models: ",models)
+        for m in models:
+            if "generateContent" in m.supported_generation_methods:
+                return m.name
+    except Exception as e:
+        print("[WARN] list_models failed:", e)
+    return "text-bison-001"   # v1beta safe option
+
+
 DEV_MODE = os.getenv("DEV_MODE", "false").lower() == "true"
 GEM_API  = os.getenv("GEMINI_API_KEY")
 
@@ -20,7 +38,8 @@ _USING_FAKE = False
 try:
     import google.generativeai as genai
     genai.configure(api_key=GEM_API)
-    model = genai.GenerativeModel("gemini-pro")
+    model_name = _pick_first_generatable_model()
+    model = genai.GenerativeModel("gemini-1.5-flash")
 except Exception as e:
     _USING_FAKE = True
     if not DEV_MODE:
@@ -65,12 +84,10 @@ def rank_and_format(prefs_text: str, raw: List[Dict]) -> List[Dict]:
                 {**rev, "text": rev["text"][:160]} for rev in t["reviews"][:2]
             ]
         trimmed.append(t)
+    user_prompt = f"""
 
-    system = (
         "You are an expert restaurant recommender. "
         "Format your entire response strictly as JSON array only."
-    )
-    user_prompt = f"""
 User preferences: {prefs_text or 'N/A'}
 
 Here is a JSON list of candidate restaurants (≤15):
@@ -82,7 +99,7 @@ Rank them best to worst for the user. Keep exactly 10 items. For each produce th
 Respond with ONLY the JSON list – no markdown, no explanations. """
     try:
         resp = model.generate_content(
-            [ {"role":"system", "parts":[system]},
+            [
             {"role":"user",   "parts":[user_prompt]} ],
             generation_config = {
                 "temperature":0.5,

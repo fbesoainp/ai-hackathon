@@ -45,9 +45,7 @@ arrow_schema = pa.schema([
 def make_embedding(record: dict) -> list[float]:
     """Compute a 384-d embedding over key text fields and location."""
     parts = [
-        record.get("name", ""),
         record.get("area", ""),
-        record.get("address", ""),
         record.get("description", ""),
         f"{record.get('location', {}).get('lat', 0.0)} {record.get('location', {}).get('lng', 0.0)}",
     ] + [r.get("text", "") for r in record.get("reviews", [])]

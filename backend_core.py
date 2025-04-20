@@ -94,37 +94,56 @@ async def query(q: QueryRequest, request: Request):
     
     user_doc = await user_repo.get_user(uid) or {}
     prefs_txt = _prefs_to_text(user_doc.get("preferences", {}))
-    loc_txt = ""
-    place = location_modal.get_location(q.text)
-    if place:
-        print("Found place: ", place)
-        coords = await geo_utils.geocode(place)
-        if coords:
-            loc_txt = (
-    f"User at lat {q.location['lat']:.4f} lng {q.location['lng']:.4f}"
-    if q.location else ""
-)
 
-    embed_text = ". ".join(p for p in [q.text, prefs_txt, loc_txt] if p)
+    # --- 2) try to pull explicit place from query -------------------------
+    lat_lng_txt = ""              # will hold "37.42 -122.08" etc.
+    place = ""
+    if not q.location:
+        place = location_modal.get_location(q.text)
+        if place:
+            coords = await geo_utils.geocode(place)      # (lat, lng) | None
+            if coords:
+                q.location = {"lat": coords[0], "lng": coords[1]}
+
+    if q.location:                # build the numeric string for embedding
+        lat_lng_txt = f"{q.location['lat']:.4f} {q.location['lng']:.4f}"
+            
+
+    # --- 3) build embedding input exactly like make_embedding -------------
+    embed_parts = [
+        place,                        # area unknown at query time
+        q.text,                    # treat query text as description proxy
+        lat_lng_txt,
+    ]
+    embed_text = " ".join(p for p in embed_parts if p)
+    print("text is: ", embed_text)
     vec = embed_modal.embed(embed_text)
 
 
-    # TODO Fix this shi with the new lancedb seeding.
+    # --- 4) vector search --------------------------------------------------
     raw: list[dict] = (
-    restaurants_tbl.search(vec)
-    .metric("cosine")
-    .limit(8)
-    .select([
-        "title",
-        "rating",
-        "description",
-        "summary",
-    ])
-    .to_pandas()
-    .to_dict("records")
+        restaurants_tbl.search(vec)
+        .metric("cosine")
+        .limit(15)
+        .select([
+            "area","name","address","location",
+            "rating","review_amount",
+            "description","photos","reviews"
+        ])
+        .to_pandas()
+        .to_dict("records")
     )
+
+    print(raw)
     
-# --- 5) let LLM rank & format ------------------------------------------
+    # truncate reviews to avoid huge prompts
+    for r in raw:
+        if isinstance(r.get("reviews"), list):
+            r["reviews"] = [
+                {**rev, "text": rev["text"][:160]} for rev in r["reviews"][:2]
+            ]
+
+    # --- 5) LLM post‑processing (Gemini or Modal) -------------------------
     results = postprocess_modal.rank_and_format(prefs_txt, raw)
 
     return QueryResponse(results=results)

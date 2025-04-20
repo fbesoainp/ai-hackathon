@@ -31,12 +31,11 @@ image = (
 
 @app.function(image=image, max_containers=100, cpu=2)
 def compute_embedding(text: str) -> list[float]:
-    """Remote function – loads model once per worker and returns embedding list."""
-    from sentence_transformers import SentenceTransformer  # lazy import inside container
+    from sentence_transformers import SentenceTransformer
     global _model
     if "_model" not in globals():
         _model = SentenceTransformer("all-MiniLM-L6-v2")
-    emb = _model.encode(text, normalize_embeddings=True)
+    emb = _model.encode(text)       # <‑‑ drop normalize_embeddings=True
     return emb.tolist()
 
 # ---------------------------------------------------------------------------
@@ -50,16 +49,13 @@ def _fallback(text: str) -> np.ndarray:
     return rng.random(EMBED_DIM, dtype="float32")
 
 
+# embed_modal.py  – patch embed()
 def embed(text: str) -> np.ndarray:
-    """Synchronous helper used by backend.
-
-    * Calls the Modal function to get an embedding list.
-    * Slices/pads to 384 dims.
-    * Falls back to deterministic random if Modal call fails **or** we are
-      offline/dev and Modal client is not available.
-    """
     try:
-        vec = compute_embedding.call(text)
+        fn = modal.Function.lookup("pairfecto-embeddings", "compute_embedding")
+
+        vec = fn.remote(text)                 # blocks, returns list[float]
+
         arr = np.array(vec[:EMBED_DIM], dtype="float32")
         if arr.shape[0] < EMBED_DIM:
             arr = np.pad(arr, (0, EMBED_DIM - arr.shape[0]))
