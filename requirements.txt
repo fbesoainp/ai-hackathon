@@ -5,6 +5,8 @@ httpx
 python-dotenv
 pydantic
 dnspython
+modal
+google-generativeai==0.3.2
 
 # Google / Firebase auth
 google-auth
@@ -17,7 +19,8 @@ google-generativeai
 # Embedded vector DB (LanceDB) + Arrow backing store
 lancedb
 pyarrow
-
+pandas
+faker
 numpy
 
 # Ingestion utilities
