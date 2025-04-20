@@ -20,3 +20,5 @@ GOOGLE_AUTH_CLIENT_IDS = [
     os.getenv("IOS_GOOGLE_AUTH_CLIENT_ID", ""),
     "pairfecto"
 ]
+LANCE_URI = os.getenv("LANCE_URI", "")
+LANCE_API_KEY = os.getenv("LANCE_API_KEY", "")
