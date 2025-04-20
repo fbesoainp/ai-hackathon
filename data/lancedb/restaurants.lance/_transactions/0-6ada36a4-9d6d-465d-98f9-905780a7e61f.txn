@@ -1,0 +1,10 @@
+$6ada36a4-9d6d-465d-98f9-905780a7e61f²á&area ÿÿÿÿÿÿÿÿÿ*string08Zdefault(name ÿÿÿÿÿÿÿÿÿ*string08Zdefault+address ÿÿÿÿÿÿÿÿÿ*string08Zdefault*location ÿÿÿÿÿÿÿÿÿ*struct0Zdefaultlat *double08Zdefaultlng *double08Zdefault)rating ÿÿÿÿÿÿÿÿÿ*float08Zdefault0review_amount ÿÿÿÿÿÿÿÿÿ*int3208Zdefault/description ÿÿÿÿÿÿÿÿÿ*string08Zdefault0reviews	 ÿÿÿÿÿÿÿÿÿ*list.struct08Zdefaultitem
+ 	*struct0Zdefault&author_name 
+*string08Zdefault%
+author_url 
+*string08Zdefault#language 
+*string08Zdefault rating 
+*int3208Zdefault4relative_time_description 
+*string08Zdefaulttext 
+*string08Zdefaulttime 
+*int6408Zdefault(photos ÿÿÿÿÿÿÿÿÿ*list08Zdefaultitem *string08Zdefault=vector ÿÿÿÿÿÿÿÿÿ*fixed_size_list:float:38408Zdefault

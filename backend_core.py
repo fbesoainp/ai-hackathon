@@ -5,6 +5,7 @@ from fastapi import FastAPI, Depends, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import numpy as np
+import numbers
 
 load_dotenv()
 import user_repo
@@ -29,7 +30,7 @@ class QueryRequest(BaseModel):
     location: dict[str, float] | None = None
 
 class RestaurantOut(BaseModel):
-    name:str; photo_url:str|None=None; rating:float|None=None; total_reviews:int|None=None; price:str|None=None; opening_hours:list|None=None
+    name:str; photo_url:list|None=None; rating:float|None=None; total_reviews:int|None=None; price:str|None=None; opening_hours:list|None=None
     tag:str|None=None; summary:str|None=None; description:str|None=None; review_summary:str|None=None
 
 class QueryResponse(BaseModel):
@@ -84,6 +85,18 @@ async def get_user(request: Request):
         preferences=doc.get("preferences", {}),
     )
 
+def _sanitize(x):
+    """Recursively turn NumPy containers into vanilla Python types."""
+    if isinstance(x, dict):
+        return {k: _sanitize(v) for k, v in x.items()}
+    if isinstance(x, list):
+        return [_sanitize(v) for v in x]
+    if isinstance(x, np.ndarray):
+        return [_sanitize(v) for v in x.tolist()]
+    if isinstance(x, np.generic):
+        return x.item()
+    return x
+
 # -------------- Query route --------------
 @app.post("/query", response_model=QueryResponse)
 async def query(q: QueryRequest, request: Request):
@@ -129,24 +142,25 @@ async def query(q: QueryRequest, request: Request):
             "area","name","address","location",
             "rating","review_amount",
             "description",
-            #"photos",
+            "photos",
             #"reviews"
         ])
         .to_pandas()
         .to_dict("records")
     )
 
-    print(raw)
-    
-    # truncate reviews to avoid huge prompts
-    for r in raw:
-        if isinstance(r.get("reviews"), list):
-            r["reviews"] = [
-                {**rev, "text": rev["text"][:160]} for rev in r["reviews"][:2]
-            ]
+    photo_map = { r["name"]: r.get("photos", []) for r in raw }
+    light_raw = [
+        {k: v for k, v in r.items() if k != "photos"}   # drop photos from payload
+        for r in raw
+    ]
+
 
     # --- 5) LLM post‑processing (Gemini or Modal) -------------------------
-    results = postprocess_modal.rank_and_format(prefs_txt, raw)
+    results = postprocess_modal.rank_and_format(prefs_txt, light_raw)
+
+    for item in results:
+        item["photo_url"] = photo_map.get(item["name"], [])[:4]   # keep ≤4 URLs
 
     return QueryResponse(results=results)
 

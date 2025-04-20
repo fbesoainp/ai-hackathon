@@ -173,7 +173,7 @@ Respond with ONLY the JSON list – no markdown, no explanations. """
             {"role":"user",   "parts":[user_prompt]} ],
             generation_config = {
                 "temperature":0.5,
-                "max_output_tokens":10000,
+                "max_output_tokens":40000,
                 "response_mime_type": "application/json",
                 "response_schema": MATCHED_RESTAURANTS_SCHEMA
             },
